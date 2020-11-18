@@ -3,9 +3,13 @@
 
 <!--- Note that these columns can be defined in any order.
       The actual rendered columns are set as a property on the row definition" -->
-<ng-container *ngFor="let col of displayedColumns" [matColumnDef]="col">
+<ng-container *ngFor="let col of displayedColumns ; let i = index" [matColumnDef]="col">
   <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
-  <td mat-cell *matCellDef="let row">{{ row[col] }}</td>
+  <td mat-cell *matCellDef="let row">
+    <mat-form-field>
+      <input class="celltext" matInput [(ngModel)]="row[col]"  [readonly]="(i>1)?false:true"/>
+    </mat-form-field>
+  </td>
 </ng-container>
 
 <!-- Default Table lines -->
@@ -27,7 +31,7 @@
   </td>
 </ng-container>
 
-<!-- Group line -->
+<!-- Group line Header -->
 <tr mat-row  class="clickable"
     *matRowDef="let row; columns: ['groupReducer','groupHeader']; when: isGroup" 
     (click)="reduceGroup(row)" > 

@@ -1,6 +1,8 @@
 // import { DataSource } from '@angular/cdk/collections';
-import { Component, OnInit } from '@angular/core';
-import { records } from '../shared/record';
+import { Component, OnInit, ViewChildren, ElementRef, QueryList } from '@angular/core';
+import {FormControl, Validators} from '@angular/forms';
+import { records, iRecord } from '../shared/record';
+import { MatInput } from '@angular/material/input';
 
 
 
@@ -26,7 +28,16 @@ export class RecordsComponent implements OnInit{
 
   initialData: any [];
 
-  
+  validNumber = new FormControl('', [Validators.required, Validators.pattern('^[0-9]+(.[0-9]{0,2})?$')]);
+
+  editRowId:number=-1
+  @ViewChildren(MatInput,{read:ElementRef}) inputs:QueryList<ElementRef>;
+
+  ngOnInit() {
+    let inputData = records;
+    if(!this.initData(inputData)) return;
+    this.buildDataSource();
+  }
 
   /**
    * Discovers columns in the data
@@ -39,17 +50,13 @@ export class RecordsComponent implements OnInit{
   }
 
 
-  ngOnInit() {
-    let inputData = records;
-    if(!this.initData(inputData)) return;
-    this.buildDataSource();
-  }
-
    /**
    * Rebuilds the datasource after any change to the criterions
    */
   buildDataSource(){
     this.dataSource = this.groupBy(this.groupingDef,this.initialData,this.reducedGroups);
+    console.log( 'data-source');
+    console.log( this.dataSource);
   }
 
   /**
@@ -63,22 +70,29 @@ export class RecordsComponent implements OnInit{
     if(!reducedGroups) collapsedGroups = [];
     const customReducer = (accumulator, currentValue) => {
       let currentGroup = currentValue[column];
-      if(!accumulator[currentGroup])
-      accumulator[currentGroup] = [{
-        groupName: `${column} ${currentValue[column]}`,
-        value: currentValue[column], 
-        isGroup: true,
-        reduced: collapsedGroups.some((group) => group.value == currentValue[column])
-      }];
-      
+      if(!accumulator[currentGroup]){
+        accumulator[currentGroup] = [{
+          groupName: `${column} ${currentValue[column]}`,
+          value: currentValue[column], 
+          isGroup: true,
+          reduced: collapsedGroups.some((group) => group.value == currentValue[column])
+        }];
+      }
       accumulator[currentGroup].push(currentValue);
 
       return accumulator;
     }
     let groups = data.reduce(customReducer,{});
+    
     let groupArray = Object.keys(groups).map(key => groups[key]);
+    this.addFooterRow(groupArray);
     let flatList = groupArray.reduce((a,c)=>{return a.concat(c); },[]);
-
+    // console.log( 'groups');
+    // console.log(groups);
+    // console.log( 'group-array');
+    // console.log(groupArray);
+    // console.log( 'flatList');
+    // console.log(flatList);
     return flatList.filter((rawLine) => {
         return rawLine.isGroup || 
         collapsedGroups.every((group) => rawLine[column]!=group.value);
@@ -104,6 +118,33 @@ export class RecordsComponent implements OnInit{
       this.reducedGroups = this.reducedGroups.filter((el)=>el.value!=row.value);
     
     this.buildDataSource();
+  }
+
+  /** Gets the total of all columns. */
+  addFooterRow(groups) {
+    
+    for(const element of groups){
+      console.log(element);
+      let footerRow = {group:element[0].value,index:"Total"};
+      element.forEach((row,index)=>{
+        if(index>0){
+          let sum = 0;
+          let key = '';
+          Object.keys(row).forEach((obj, i)=>{
+            
+            if(i>1){
+              sum = sum + (row[obj]);
+              footerRow[obj] = sum.toFixed(2);
+            }
+            
+          });
+          // footerRow[obj] = sum.toFixed(2);
+        }
+      });
+      element.push(footerRow)
+      // console.log(element)
+    }
+    // var sum = this.items[i]['myfield'].reduce(function(x, y) { return x + y; }, 0);
   }
 }
 
